@@ -1,0 +1,28 @@
+service: aucbot-error-dlq-alert
+
+# serverless-webpack configuration
+# Enable auto-packing of external modules
+custom:
+  mySnsTopic: "aucbot-prod-dlq-2"
+  mySnsTopicArn:
+    local:
+      "arn:aws:sns:us-east-1:123456789012:${self:custom.mySnsTopic}"
+    prod:
+      { "Fn::Join" : ["", ["arn:aws:sns:${self:provider.region}:", { "Ref" : "AWS::AccountId" }, ":${self:custom.mySnsTopic}" ] ]  }
+
+provider:
+  name: aws
+  runtime: python3.8
+  stage: prod
+  region: us-east-1  
+  environment: ${file(env.yml):}
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - SNS:Publish
+      Resource: { "Fn::Join" : ["", ["arn:aws:sns:${self:provider.region}:", { "Ref" : "AWS::AccountId" }, ":${self:custom.mySnsTopic}" ] ]  }
+functions:
+  snsConsume:
+    handler: functions/snsConsume.handler
+    events:
+      - sns: ${self:custom.mySnsTopic}
